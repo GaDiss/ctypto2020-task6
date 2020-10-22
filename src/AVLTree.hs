@@ -9,50 +9,42 @@ module AVLTree
 
 import Lib
 import Data.ByteArray (ByteArrayAccess, unpack)
-import qualified Data.ByteString as B
-import Crypto.Hash
-
-emptyLabel = stringToLabel ""
 
 data AVLTree key value =
       MinLeaf
     | Leaf key value
-    | Node Heighth key Label (AVLTree key value) (AVLTree key value)
+    | Node
+        Height              -- ^ height of a tree
+        Bool                -- ^ visited
+        key                 -- ^ key
+        Label               -- ^ label
+        (AVLTree key value) -- ^ left subtree
+        (AVLTree key value) -- ^ right subtree
   deriving Show
 
-labelLeaf :: (ByteArrayAccess key, ByteArrayAccess value)
-          => key -> value -> Label
-labelLeaf k v =
-    hashFinalize $ flip hashUpdate v
-                 $ flip hashUpdate k
-                 $ flip hashUpdate (B.singleton 0)
-                 $ hashInit
-
-getProofNode :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-             => Direction -> AVLTree key value -> ProofNode key value
-getProofNode direction MinLeaf               = Neighbour direction emptyLabel 0
-getProofNode direction (Leaf k v)            = Neighbour direction (labelLeaf k v) 0
-getProofNode direction (Node h _ label _ _)  = Neighbour direction label h
+notVisited :: (AVLTree key value) -> (AVLTree key value)
+notVisited (Node h _ k lbl l r) = (Node h False k lbl l r)
+notVisited leaf = leaf
 
 -- | Returns minimal value in the tree
 getMinValue :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-            => (AVLTree key value) -> (Maybe value, [ProofNode key value])
-getMinValue MinLeaf = (Nothing, [])
-getMinValue (Leaf k v) = (Just v, [StartingLeaf k v])
-getMinValue (Node _ _ _ l r) = (mv, (getProofNode RightNode r : mp))
+            => (AVLTree key value) -> (Maybe value, (AVLTree key value))
+getMinValue MinLeaf = (Nothing, MinLeaf)
+getMinValue (Leaf k v) = (Just v, (Leaf k v))
+getMinValue (Node h _ k lbl l r) = (mv, (Node h True k lbl (notVisited l) mp))
   where
     (mv, mp) = getMinValue l
 
 doLookup :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
          -> (AVLTree key value)
-         -> (Maybe value, [ProofNode key value])
-doLookup _ MinLeaf = (Nothing, [])
-doLookup k (Leaf lk lv) | k == lk   = (Just lv, [StartingLeaf lk lv])
-                        | otherwise = (Nothing, [])
-doLookup k (Node _ nk _ lc rc) | k < nk  = (lv, (getProofNode RightNode rc : lp))
-                               | k > nk  = (rv, (getProofNode LeftNode lc : rp))
-                               | k == nk = (mv, (getProofNode LeftNode lc : mp))
+         -> (Maybe value, AVLTree key value)
+doLookup _ MinLeaf = (Nothing, MinLeaf)
+doLookup k (Leaf lk lv) | k == lk   = (Just lv, (Leaf lk lv))
+                        | otherwise = (Nothing, (Leaf lk lv))
+doLookup k (Node h _ nk lbl lc rc) | k < nk  = (lv, (Node h True nk lbl lp (notVisited rc)))
+                                   | k > nk  = (rv, (Node h True nk lbl (notVisited lc) rp))
+                                   | k == nk = (mv, (Node h True nk lbl (notVisited lc) mp))
   where
     (lv, lp) = doLookup k lc
     (rv, rp) = doLookup k rc
@@ -63,20 +55,20 @@ doReplace :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
           => key
           -> value
           -> (AVLTree key value)
-          -> (AVLTree key value, [ProofNode key value])
-doReplace _ _ t = (t, [])
+          -> (AVLTree key value)
+doReplace _ _ t = t
 
 -- TODO
 doInsert :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
          -> value
          -> (AVLTree key value)
-         -> (AVLTree key value, [ProofNode key value])
-doInsert _ _ t = (t, [])
+         -> (AVLTree key value)
+doInsert _ _ t = t
 
 -- TODO
 doRemove :: (Ord key, ByteArrayAccess key)
          => key
          -> (AVLTree key value)
-         -> (AVLTree key value, [ProofNode key value])
-doRemove _ t = (t, [])
+         -> (AVLTree key value)
+doRemove _ t = t

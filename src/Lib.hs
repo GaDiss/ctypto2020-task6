@@ -1,11 +1,22 @@
-module Lib where
+module Lib
+  (
+    Label (..)
+  , Height (..)
+  , RootDigest (..)
+  , Result (..)
+  , Direction (..)
+  , ProofNode (..)
+  , Operation (..)
+  , stringToLabel
+  ) where
 
 import Crypto.Hash
+import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 
 type Label = Digest Blake2b_512
 
-type Heighth = Int
+type Height = Int
 
 data RootDigest = RootDigest Label Int
 
@@ -16,8 +27,8 @@ data Direction = LeftNode | RightNode
   deriving (Show, Eq)
 
 data ProofNode key value =
-       Neighbour Direction Label Heighth
-     | NeighbourKids Direction Label Heighth Label Heighth
+       PathNode
+     | NodeLabel Direction Label Height
      | StartingLeaf key value
      deriving Show
 
