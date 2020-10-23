@@ -33,10 +33,10 @@ data ProofNode key value =
      deriving Show
 
 data Operation key value =
-       Insert key value
-     | Delete key
-     | Lookup key
-     | Replace key value
+       Insert {getKey :: key, getValue :: value}
+     | Delete {getKey :: key}
+     | Lookup {getKey :: key}
+     | Replace {getKey :: key, getValue :: value}
      deriving Show
 
 stringToLabel :: String -> Label
