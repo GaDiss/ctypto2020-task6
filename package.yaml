@@ -24,6 +24,12 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+    - bytestring
+    - memory
+    - utf8-string
+    - cryptonite
+    - containers
 
 executables:
   task6-exe:
@@ -46,3 +52,14 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - task6
+    - tasty
+    - tasty-hspec
+    - tasty-hedgehog
+    - hspec
+    - hedgehog
+    - hspec-hedgehog
+    - bytestring
+    - memory
+    - utf8-string
+    - cryptonite
+    - containers
