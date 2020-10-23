@@ -1,7 +1,9 @@
 module Examples where
 
-import Lib
 import AVLTree
+import Hashing
+import Lib
+
 import Crypto.Hash
 import qualified Data.ByteString.UTF8 as BU
 

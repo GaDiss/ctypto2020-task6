@@ -1,10 +1,11 @@
 module Verifier where
 
-import Lib
 import AVLTree
+import Lib
+
 import Data.ByteArray (ByteArrayAccess)
 
--- TODO
+-- | verifies proof of a given operation
 verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
        => RootDigest              -- ^ old digest
        -> (Operation key value)   -- ^ applied operation
@@ -13,21 +14,27 @@ verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
           , RootDigest            -- ^ new digest
           , Maybe value           -- ^ return value
           )
-
 verify (RootDigest rootLbl h) op proof = (result, newD, retV)
   where
+    -- partially recreates a  after checking that proof is not too long
     recT = case (compare (length proof) (2 * (2 + h))) of
       GT -> MinLeaf
       _  -> fst $ recreateTree proof
-    result = if (label recT) == rootLbl
+    -- compares recreated digest with starting digest
+    result = if (getDigest recT) == (RootDigest rootLbl h)
       then Accept
       else Reject
+    -- applies operation
     (retV, _, newT) = AVLTree.modify op recT
+    -- calculates a new digest
     newD = getDigest newT
 
+-- | partially recreates a tree from proof
 recreateTree :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
              => [ProofNode key value]
-             -> (AVLTree key value, [ProofNode key value])
+             -> ( AVLTree key value
+                , [ProofNode key value]
+                )
 recreateTree (StartingLeaf k v : rest)             = ((Leaf k v), rest)
 recreateTree (NodeLabel dir (Just k) lbl h : rest) =
   case h of

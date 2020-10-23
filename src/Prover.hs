@@ -3,12 +3,14 @@ module Prover
     prove
   ) where
 
-import Lib
 import AVLTree
 import Hashing
+import Lib
+
 import Data.ByteArray (ByteArrayAccess)
 import Data.Set (Set, insert, union, empty, member)
 
+-- | applies operation and generates proof
 prove :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
       => (AVLTree key value)     -- ^ Old Tree
       -> (Operation key value)   -- ^ Operation
@@ -18,8 +20,10 @@ prove :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          )
 prove t op = (buildProof RootNode (getKey op) t set, newT, retV)
   where
-   (retV, set, newT) = modify op t
+    -- applies operation to a tree
+    (retV, set, newT) = modify op t
 
+-- | generates a proof
 buildProof :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
            => Direction             -- ^ direction of Node
            -> key                   -- ^ Changed Leaf's key
@@ -32,6 +36,7 @@ buildProof direction k (Leaf lk lv) set
   | k == lk = [StartingLeaf lk lv]
 buildProof direction k node set = [getProofNode direction node]
 
+-- ProofNode constructor
 getProofNode :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
              => Direction -> AVLTree key value -> ProofNode key value
 getProofNode direction MinLeaf                = NodeLabel direction Nothing emptyLabel 0

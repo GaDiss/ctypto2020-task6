@@ -14,8 +14,9 @@ module AVLTree
   , newNode
   ) where
 
-import Lib
 import Hashing
+import Lib
+
 import Data.ByteArray (ByteArrayAccess)
 import qualified Data.Set as S
 

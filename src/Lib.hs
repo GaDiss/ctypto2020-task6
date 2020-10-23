@@ -7,7 +7,6 @@ module Lib
   , Direction (..)
   , ProofNode (..)
   , Operation (..)
-  , stringToLabel
   , first3
   , second3
   , third3
@@ -15,14 +14,13 @@ module Lib
 
 import Crypto.Hash
 import qualified Data.ByteString as B
-import qualified Data.ByteString.UTF8 as BU
 
 type Label = Digest Blake2b_512
 
 type Height = Int
 
 data RootDigest = RootDigest Label Int
-  deriving Show
+  deriving (Show, Eq)
 
 data Result = Accept | Reject
   deriving (Show, Eq)
@@ -42,9 +40,6 @@ data Operation key value =
      | Lookup {getKey :: key}
      | Replace {getKey :: key, getValue :: value}
      deriving Show
-
-stringToLabel :: String -> Label
-stringToLabel = hashWith Blake2b_512 . BU.fromString
 
 first3 :: (a, b, c) -> a
 first3 (x, _, _) = x
