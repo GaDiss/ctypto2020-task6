@@ -5,8 +5,8 @@ ITMO Group project №1 for 2020 Cryptography course from
 ### Improving Authenticated Dynamic Dictionaries, with Applications to Cryptocurrencies
 
 Simplified haskell implementation of 
-improved Authenticated Dynamic Dictionaries
-data structure describe [here](https://eprint.iacr.org/2016/994.pdf)
+an improved dynamic dictionary data structure
+describe [here](https://eprint.iacr.org/2016/994.pdf)
 
 ##### Prover
 Prover implemented as a simple function that can be denoted as follows
