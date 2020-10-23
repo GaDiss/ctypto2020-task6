@@ -1,4 +1,7 @@
-module Verifier where
+module Verifier
+  (
+    verify
+  ) where
 
 import AVLTree
 import Lib
