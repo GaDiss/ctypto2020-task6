@@ -4,7 +4,7 @@ ITMO Group project №1 for 2020 Cryptography course from
 
 ### Improving Authenticated Dynamic Dictionaries, with Applications to Cryptocurrencies
 
-Simplified haskell implementation of 
+Simplified for studying purposes haskell implementation of 
 an improved dynamic dictionary data structure
 describe [here](https://eprint.iacr.org/2016/994.pdf)
 
