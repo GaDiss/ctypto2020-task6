@@ -62,7 +62,7 @@ doLookup :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
 doLookup k = modify $ Lookup k
 
 -- | Tries to replace a value in a leaf by given key  : O(log(n))
--- returns Just new value if found, Nothing if not
+-- returns Just new value if successful, Nothing if not
 --     and a new tree
 doReplace :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
           => key
@@ -72,7 +72,7 @@ doReplace :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
 doReplace k v = modify $ Replace k v
 
 -- | Tries to insert a leaf by given key  : O(log(n))
--- returns Just inserted value if found, Nothing if not
+-- returns Just inserted value if successful, Nothing if not
 --     and a new tree
 doInsert :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
@@ -82,7 +82,7 @@ doInsert :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
 doInsert k v = modify $ Insert k v
 
 -- | Tries to delete a leaf by given key  : O(log(n))
--- returns Just deleted value if found, Nothing if not
+-- returns Just deleted value if successful, Nothing if not
 --     and a new tree
 doDelete :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
@@ -104,7 +104,7 @@ modify op (Node h _ nk nl l r) =
     EQ -> case op of
       (Delete k) -> case r of
                     Leaf kk vv -> (Just vv, l)
-                    _ -> (replacedValue, balance afterDelete)
+                    _          -> (replacedValue, balance afterDelete)
       _          -> (maybeEqVal, balance (newNode nk lOld rNewEq))
   where
     this = (Node h True nk nl l r)
@@ -236,6 +236,3 @@ ansCollector :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
              -> ([Maybe value], AVLTree key value)
 ansCollector (res, t) op = ((res ++ [fst p]), snd p)
   where p = modify op t
-
-
-
