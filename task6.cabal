@@ -40,11 +40,10 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , hashable
     , memory
     , utf8-string
-    , base64-bytestring
     , cryptonite
+    , containers
   default-language: Haskell2010
 
 executable task6-exe

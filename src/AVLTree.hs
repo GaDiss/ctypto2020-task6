@@ -1,25 +1,30 @@
 module AVLTree
   (
     AVLTree (..)
-  , notVisited
+  , height
+  , label
+  , getDigest
   , doLookup
   , doReplace
   , doInsert
   , doDelete
   , modify
   , modifyMany
+  , fromList
+  , newNode
   ) where
 
 import Lib
 import Hashing
 import Data.ByteArray (ByteArrayAccess)
+import qualified Data.Set as S
 
 data AVLTree key value =
       MinLeaf
     | Leaf key value
+    | LabelLeaf key Label
     | Node
         Height              -- ^ height of a tree
-        Bool                -- ^ visited
         key                 -- ^ key
         Label               -- ^ label
         (AVLTree key value) -- ^ left subtree
@@ -27,30 +32,33 @@ data AVLTree key value =
 
 instance (Show key, Show value) => Show (AVLTree key value) where
   show MinLeaf = "L -inf NA"
+  show (LabelLeaf k v) = "L* " ++ show k
   show (Leaf k v) = "L " ++ show k ++ " " ++ show v
-  show (Node h b k lbl l r) = "N "
+  show (Node h k lbl l r) = "N "
                            ++ (show h) ++ " "
-                           ++ (show b) ++ " "
                            ++ (show k)  ++ " "
                            ++ "(" ++ (show l) ++ ") "
                            ++ "(" ++ (show r) ++ ")"
 
 -- | getter for tree height
 height :: (AVLTree key value) -> Height
-height (Node h _ _ _ _ _) = h
+height (Node h _ _ _ _) = h
 height _                  = 0
 
 -- | getter for tree label
 label :: (ByteArrayAccess key, ByteArrayAccess value)
       => (AVLTree key value) -> Label
 label MinLeaf = emptyLabel
+label (LabelLeaf _ lbl) = lbl
 label (Leaf k v) = labelLeaf k v
-label (Node _ _ _ l _ _) = l
+label (Node _ _ lbl _ _) = lbl
 
--- | resets visited marks in all of tree : O(n)
-notVisited :: (AVLTree key value) -> (AVLTree key value)
-notVisited (Node h _ k lbl l r) = (Node h False k lbl (notVisited l) (notVisited r))
-notVisited leaf = leaf
+
+-- | returns digest of tree root
+getDigest :: (ByteArrayAccess key, ByteArrayAccess value)
+          => (AVLTree key value)
+          -> RootDigest
+getDigest tree = RootDigest (label tree) (height tree)
 
 -- | Tries to find a value by given key  : O(log(n))
 -- returns Just value if found, Nothing if not
@@ -58,7 +66,7 @@ notVisited leaf = leaf
 doLookup :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
          -> (AVLTree key value)
-         -> (Maybe value, AVLTree key value)
+         -> (Maybe value, S.Set key, AVLTree key value)
 doLookup k = modify $ Lookup k
 
 -- | Tries to replace a value in a leaf by given key  : O(log(n))
@@ -68,7 +76,7 @@ doReplace :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
           => key
           -> value
           -> (AVLTree key value)
-          -> (Maybe value, AVLTree key value)
+          -> (Maybe value, S.Set key, AVLTree key value)
 doReplace k v = modify $ Replace k v
 
 -- | Tries to insert a leaf by given key  : O(log(n))
@@ -78,7 +86,7 @@ doInsert :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
          -> value
          -> (AVLTree key value)
-         -> (Maybe value, AVLTree key value)
+         -> (Maybe value, S.Set key, AVLTree key value)
 doInsert k v = modify $ Insert k v
 
 -- | Tries to delete a leaf by given key  : O(log(n))
@@ -87,152 +95,165 @@ doInsert k v = modify $ Insert k v
 doDelete :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          => key
          -> (AVLTree key value)
-         -> (Maybe value, AVLTree key value)
+         -> (Maybe value, S.Set key, AVLTree key value)
 doDelete k = modify $ Delete k
 
 -- | Applies single operation to a tree  : O(log(n))
 -- returns a result of given operation (specified below)
 --     and a new tree
 modify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-       => (Operation key value)            -- ^ operation, applied to old tree
-       -> (AVLTree key value)              -- ^ old tree
-       -> (Maybe value, AVLTree key value) -- ^ (return value, new tree)
-modify op (Node h _ nk nl l r) =
+       => (Operation key value)                     -- ^ operation, applied to old tree
+       -> (AVLTree key value)                       -- ^ old tree
+       -> (Maybe value, S.Set key, AVLTree key value) -- ^ (return value, visited keys, new tree)
+modify op (Node h nk nl l r) =
   case compare k nk of
-    LT -> (maybeLVal, balance (newNode nk lNew rOld))
-    GT -> (maybeRVal, balance (newNode nk lOld rNew))
+    LT -> (maybeLVal, (S.union lBalS lSet), lFinT)
+    GT -> (maybeRVal, (S.union rBalS rSet), rFinT)
     EQ -> case op of
       (Delete k) -> case r of
-                    Leaf kk vv -> (Just vv, l)
-                    _          -> (replacedValue, balance afterDelete)
-      _          -> (maybeEqVal, balance (newNode nk lOld rNewEq))
+                    Leaf kk vv -> (Just vv, (S.singleton nk), l)
+                    _          -> (replacedValue, (S.insert nk (S.union adBalS delSet)), adFinT)
+      _          -> (maybeEqVal, (S.union mBalS mSet), mFinT)
   where
-    this = (Node h True nk nl l r)
+    this = (Node h nk nl l r)
     k = getKey op
     lOld = l
     rOld = r
-    (maybeLVal, lNew) = modify op l
-    (maybeRVal, rNew) = modify op r
-    (maybeEqVal, rNewEq) = modifyMin op r
-    (delKey, delLeaf, lNewDel) = deleteRight l
-    (replacedV, changedTree) = (replaceLeftLeaf delLeaf r)
-    (replacedValue, afterDelete) =
+    (maybeLVal, lSet, lNew) = modify op l
+    (lBalS, lFinT) = balance (newNode nk lNew rOld)
+    (maybeRVal, rSet, rNew) = modify op r
+    (rBalS, rFinT) = balance (newNode nk lOld rNew)
+    (maybeEqVal, mSet, rNewEq) = modifyMin op r
+    (mBalS, mFinT) = balance (newNode nk lOld rNewEq)
+    (delKey, delLSet, delLeaf, lNewDel) = deleteRight l
+    (replacedV, delRSet, changedTree) = (replaceLeftLeaf delLeaf r)
+    (replacedValue, delSet, afterDelete) =
       case l of
-        MinLeaf            -> replaceLeftLeaf MinLeaf r
-        (Leaf leftK leftV) -> replaceLeftLeaf (Leaf leftK leftV) r
-        _                  -> (replacedV, newNode delKey lNewDel changedTree)
-modify (Insert k v) MinLeaf = (Just v, newNode k MinLeaf (Leaf k v))
-modify _ MinLeaf = (Nothing, MinLeaf)
+        MinLeaf                   -> replaceLeftLeaf MinLeaf r
+        (Leaf leftK leftV)        -> replaceLeftLeaf (Leaf leftK leftV) r
+        (LabelLeaf lleftK lleftV) -> replaceLeftLeaf (LabelLeaf lleftK lleftV) r
+        _                         -> (replacedV, (S.union delLSet delRSet), newNode delKey lNewDel changedTree)
+    (adBalS, adFinT) = balance afterDelete
+modify (Insert k v) MinLeaf = (Just v, S.empty, newNode k MinLeaf (Leaf k v))
+modify _ MinLeaf = (Nothing, S.empty, MinLeaf)
+modify _ (LabelLeaf k lbl) = (Nothing, S.empty, LabelLeaf k lbl)
 modify op (Leaf lk lv)
   | k == lk = case op of
-                (Lookup k)    -> (Just lv, (Leaf lk lv))
-                (Replace k v) -> (Just v, (Leaf k v))
-                (Insert k v)  -> (Nothing, (Leaf lk lv))
+                (Lookup k)    -> (Just lv, S.empty, (Leaf lk lv))
+                (Replace k v) -> (Just v, S.empty, (Leaf k v))
+                (Insert k v)  -> (Nothing, S.empty, (Leaf lk lv))
                 _             -> error "tree is incorrect"
-  | k < lk = (Nothing, (Leaf lk lv))
+  | k < lk = (Nothing, S.empty, (Leaf lk lv))
   | k > lk = case op of
-               (Insert k v) -> (Just v, newNode k (Leaf lk lv) (Leaf k v))
-               _            -> (Nothing, (Leaf lk lv))
+               (Insert k v) -> (Just v, S.empty, newNode k (Leaf lk lv) (Leaf k v))
+               _            -> (Nothing, S.empty, (Leaf lk lv))
   where
     k = getKey op
 
 -- | Applies given operations to a given tree using modify function   : O(|ops| * log(n))
 -- returns results for operations and resulting tree
 modifyMany :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-           => [Operation key value]              -- ^ operations, applied to old tree
-           -> (AVLTree key value)                -- ^ old tree
-           -> ([Maybe value], AVLTree key value) -- ^ (return value, new tree)
-modifyMany ops oldT = foldl ansCollector ([], oldT) ops
+           => [Operation key value]                         -- ^ operations, applied to old tree
+           -> (AVLTree key value)                           -- ^ old tree
+           -> ([Maybe value], S.Set key, AVLTree key value) -- ^ (return value, visited, new tree)
+modifyMany ops oldT = foldl ansCollector ([], S.empty, oldT) ops
 
--- | creates a new Node
+fromList :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+         => [(key, value)] -> AVLTree key value
+fromList list = foldr (\(k, v) t -> third3 $ doInsert k v t) MinLeaf list
+
+-- | creates a new Node from key and its children
 newNode :: (ByteArrayAccess key, ByteArrayAccess value)
         => key -> (AVLTree key value) -> (AVLTree key value) -> (AVLTree key value)
-newNode k l r = (Node h True k lbl l r)
+newNode k l r = (Node h k lbl l r)
   where
     h = (+1) $ max (height l) (height r)
     lbl = labelCombine h (label l) (label r)
 
 -- | AVL Tree Left rotation
-rotateL :: (ByteArrayAccess key, ByteArrayAccess value)
-        => (AVLTree key value) -> (AVLTree key value)
-rotateL (Node _ _ ka _ l (Node _ _ kb _ c r))
-      = newNode kb (newNode ka l c) r
+rotateL :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+        => (AVLTree key value) -> (S.Set key, AVLTree key value)
+rotateL (Node _ ka _ l (Node _ kb _ c r))
+      = (S.fromList [ka, kb], newNode kb (newNode ka l c) r)
 
 -- | AVL Tree Left Right rotation
-rotateLR :: (ByteArrayAccess key, ByteArrayAccess value)
-         => (AVLTree key value) -> (AVLTree key value)
-rotateLR (Node _ _ ka _ l (Node _ _ kb _ (Node _ _ kc _ m n) r))
-       = newNode kc (newNode ka l m) (newNode kb n r)
+rotateLR :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+         => (AVLTree key value) -> (S.Set key, AVLTree key value)
+rotateLR (Node _ ka _ l (Node _ kb _ (Node _ kc _ m n) r))
+       = (S.fromList [ka, kb, kc], newNode kc (newNode ka l m) (newNode kb n r))
 
 -- | AVL Tree Right rotation
-rotateR :: (ByteArrayAccess key, ByteArrayAccess value)
-        => (AVLTree key value) -> (AVLTree key value)
-rotateR (Node _ _ ka _ (Node _ _ kb _ l c) r)
-      = newNode kb l (newNode ka c r)
+rotateR :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+        => (AVLTree key value) -> (S.Set key, AVLTree key value)
+rotateR (Node _ ka _ (Node _ kb _ l c) r)
+      = (S.fromList [ka, kb], newNode kb l (newNode ka c r))
 
 -- | AVL Tree Right Left rotation
-rotateRL :: (ByteArrayAccess key, ByteArrayAccess value)
-         => (AVLTree key value) -> (AVLTree key value)
-rotateRL (Node _ _ ka _ (Node _ _ kb _ l (Node _ _ kc _ m n)) r)
-       = newNode kc (newNode kb l m) (newNode ka n r)
+rotateRL :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+         => (AVLTree key value) -> (S.Set key, AVLTree key value)
+rotateRL (Node _ ka _ (Node _ kb _ l (Node _ kc _ m n)) r)
+       = (S.fromList [ka, kb, kc], newNode kc (newNode kb l m) (newNode ka n r))
 
 -- | compares heights of kids of a given node
 compareKidsHeight :: (AVLTree key value) -> Ordering
-compareKidsHeight (Node h _ ka la l r) = compare (height l) (height r)
+compareKidsHeight (Node h ka la l r) = compare (height l) (height r)
 compareKidsHeight _ = EQ
 
 -- | AVL balancing operation
-balance :: (ByteArrayAccess key, ByteArrayAccess value)
-        => (AVLTree key value) -> (AVLTree key value)
-balance (Node h _ ka la l r) =
+balance :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+        => (AVLTree key value) -> (S.Set key, AVLTree key value)
+balance (Node h ka la l r) =
   case (height r) - (height l) of
     2 -> case compareKidsHeight r of
-           GT -> rotateLR (Node h True ka la l r)
-           _  -> rotateL  (Node h True ka la l r)
+           GT -> rotateLR (Node h ka la l r)
+           _  -> rotateL  (Node h ka la l r)
     -2 -> case compareKidsHeight l of
-           LT -> rotateRL (Node h True ka la l r)
-           _  -> rotateR  (Node h True ka la l r)
-    _ -> (Node h True ka la l r)
-balance leaf = leaf
+           LT -> rotateRL (Node h ka la l r)
+           _  -> rotateR  (Node h ka la l r)
+    _ -> (S.singleton ka, Node h ka la l r)
+balance leaf = (S.empty, leaf)
 
 -- | helps with modifying
 modifyMin :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-          => (Operation key value)            -- ^ operation, applied to old tree
-          -> (AVLTree key value)              -- ^ old tree
-          -> (Maybe value, AVLTree key value) -- ^ (return value, new tree)
-modifyMin op MinLeaf = modify op MinLeaf
-modifyMin op (Leaf k v) = modify op (Leaf k v)
-modifyMin op (Node _ _ k _ l r) = (mv, balance (newNode k mp r))
+          => (Operation key value)                       -- ^ operation, applied to old tree
+          -> (AVLTree key value)                         -- ^ old tree
+          -> (Maybe value, S.Set key, AVLTree key value) -- ^ (return value, visited, new tree)
+modifyMin op (Node _ k _ l r) = (mv, (S.union balS set), tree)
   where
-    (mv, mp) = modifyMin op l
+    (balS, tree) = balance (newNode k mp r)
+    (mv, set, mp) = modifyMin op l
+modifyMin op leaf = modify op leaf
 
 -- | helps with deletion
-replaceLeftLeaf :: (ByteArrayAccess key, ByteArrayAccess value)
-                => (AVLTree key value)              -- ^ inserting instead of leaf
-                -> (AVLTree key value)              -- ^ tree where new leaf is inserted
-                -> (Maybe value, AVLTree key value) -- ^ (deleted value, resulting tree)
-replaceLeftLeaf leaf (Node _ _ k _ l r) = (v, newNode k left r)
-  where (v, left) = (replaceLeftLeaf leaf l)
-replaceLeftLeaf leaf (Leaf _ v)         = (Just v, leaf)
-replaceLeftLeaf leaf MinLeaf            = (Nothing, leaf)
+replaceLeftLeaf :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
+                => (AVLTree key value)                         -- ^ inserting instead of leaf
+                -> (AVLTree key value)                         -- ^ tree where new leaf is inserted
+                -> (Maybe value, S.Set key, AVLTree key value) -- ^ (deleted value, visited, resulting tree)
+replaceLeftLeaf leaf (Node _ k _ l r) = (v, (S.insert k set), newNode k left r)
+  where (v, set, left) = (replaceLeftLeaf leaf l)
+replaceLeftLeaf leaf (Leaf _ v)         = (Just v, S.empty, leaf)
+replaceLeftLeaf leaf MinLeaf            = (Nothing, S.empty, leaf)
 
 -- | helps with deletion
-deleteRight :: (ByteArrayAccess key, ByteArrayAccess value)
+deleteRight :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
             => (AVLTree key value)    -- ^ initial tree
             -> ( key                  -- ^ key of deleted leaf
+               , S.Set key              -- ^ S.Set of visited keys
                , (AVLTree key value)  -- ^ deleted leaf
                , (AVLTree key value)) -- ^ new tree
-deleteRight (Node _ _ k _ l r) =
+deleteRight (Node _ k _ l r) =
   case r of
-    (Leaf rKey rVal) -> (rKey, (Leaf rKey rVal), l)
-    _                -> (delKey, delLeaf, balance (newNode k l delRight))
+    (Leaf rKey rVal)      -> (rKey, (S.singleton k), (Leaf rKey rVal), l)
+    (LabelLeaf rKey lbl) -> (rKey, (S.singleton k), (LabelLeaf rKey lbl), l)
+    _                     -> (delKey, (S.union balS retS), delLeaf, tree)
   where
-    (delKey, delLeaf, delRight) = deleteRight r
+    (balS, tree) = balance (newNode k l delRight)
+    (delKey, retS, delLeaf, delRight) = deleteRight r
 
 -- | helps to collect answers in modifyMany
 ansCollector :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-             => ([Maybe value], AVLTree key value)
+             => ([Maybe value], S.Set key, AVLTree key value)
              -> (Operation key value)
-             -> ([Maybe value], AVLTree key value)
-ansCollector (res, t) op = ((res ++ [fst p]), snd p)
-  where p = modify op t
+             -> ([Maybe value], S.Set key, AVLTree key value)
+ansCollector (res, set, t) op = ((res ++ [resN]), (S.union set setN), tN)
+  where (resN, setN, tN) = modify op t
