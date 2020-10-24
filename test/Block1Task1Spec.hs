@@ -19,33 +19,45 @@ block1Task1Spec :: Spec
 block1Task1Spec = do
   describe "Block1.Task1.Security" $ do
     it "test1" $
-      getDigest (second3 (prove smallTree (Delete bytes3))) `shouldBe`
-      second3 (verify (getDigest smallTree) (Delete bytes3) (first3 (prove smallTree (Delete bytes3))))
-  
+      getDigest (second3 (prove fourTree (Delete key3))) `shouldBe`
+      second3 (verify (getDigest fourTree) (Delete key3) (first3 (prove fourTree (Delete key3))))
+
   where
-    label5 :: Label
-    label5 = stringToLabel "5"
-    label0 :: Label
-    label0 = stringToLabel "0"
+    key1 :: BU.ByteString
+    key1 = BU.fromString "1"
+    key2 :: BU.ByteString
+    key2 = BU.fromString "2"
+    key3 :: BU.ByteString
+    key3 = BU.fromString "3"
+    key4 :: BU.ByteString
+    key4 = BU.fromString "4"
+    key5 :: BU.ByteString
+    key5 = BU.fromString "5"
+
+    valueA :: BU.ByteString
+    valueA = BU.fromString "aaa"
+    valueB :: BU.ByteString
+    valueB = BU.fromString "bbb"
+    valueC :: BU.ByteString
+    valueC = BU.fromString "ccc"
+    valueD :: BU.ByteString
+    valueD = BU.fromString "ddd"
+    valueE :: BU.ByteString
+    valueE = BU.fromString "eee"
+
+    oneTree :: AVLTree BU.ByteString BU.ByteString
+    oneTree = AVLTree.fromList [(key1, valueA)]
+    twoTree :: AVLTree BU.ByteString BU.ByteString
+    twoTree = AVLTree.fromList [(key1, valueA), (key2, valueB)]
+    threeTree :: AVLTree BU.ByteString BU.ByteString
+    threeTree = AVLTree.fromList [(key1, valueA), (key2, valueB), (key3, valueC)]
+    fourTree :: AVLTree BU.ByteString BU.ByteString
+    fourTree = AVLTree.fromList [(key1, valueA), (key2, valueB), (key3, valueC), (key4, valueD)]
+    fiveTree :: AVLTree BU.ByteString BU.ByteString
+    fiveTree = AVLTree.fromList [(key1, valueA), (key2, valueB), (key3, valueC), (key4, valueD), (key5, valueE)]
     
-    bytes1 :: BU.ByteString
-    bytes1 = BU.fromString "1"
-    bytes2 :: BU.ByteString
-    bytes2 = BU.fromString "2"
-    bytes3 :: BU.ByteString
-    bytes3 = BU.fromString "3"
-    bytes4 :: BU.ByteString
-    bytes4 = BU.fromString "4"
-    bytes5 :: BU.ByteString
-    bytes5 = BU.fromString "5"
-    bytesSas :: BU.ByteString
-    bytesSas = BU.fromString "sas"
-    bytesLol :: BU.ByteString
-    bytesLol = BU.fromString "lol"
-    bytesKek :: BU.ByteString
-    bytesKek = BU.fromString "kek"
-    bytesFoo :: BU.ByteString
-    bytesFoo = BU.fromString "foo"
-    
-    smallTree :: AVLTree BU.ByteString BU.ByteString
-    smallTree = AVLTree.fromList [(bytes1, bytesSas), (bytes2, bytesKek), (bytes3, bytesLol), (bytes4, bytesFoo)]
+    x :: ( [ProofNode BU.ByteString BU.ByteString]
+         , AVLTree BU.ByteString BU.ByteString
+         , Maybe BU.ByteString
+         )
+    x = prove fourTree (Delete key4)
