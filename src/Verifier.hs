@@ -7,6 +7,7 @@ import AVLTree
 import Lib
 
 import Data.ByteArray (ByteArrayAccess)
+import Data.Set (empty)
 
 -- | verifies proof of a given operation
 verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
@@ -29,9 +30,13 @@ verify (RootDigest rootLbl h) op proof = (result, newD, retV)
       then Accept
       else Reject
     -- applies operation
-    (retV, _, newT) = AVLTree.modify op recT
+    (retV, _, newT) = case result of
+      Accept -> AVLTree.modify op recT
+      Reject -> (Nothing, empty, MinLeaf)
     -- calculates a new digest
-    newD = getDigest newT
+    newD = if result == Accept
+        then getDigest newT
+        else RootDigest rootLbl h
 
 -- | partially recreates a tree from proof
 recreateTree :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
