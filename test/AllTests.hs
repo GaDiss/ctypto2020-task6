@@ -1,5 +1,5 @@
-module Block1Task1Spec
-  ( block1Task1TestTree
+module AllTests
+  ( allTestTree
   ) where
 
 import AVLTree
@@ -20,13 +20,13 @@ type Proof = [ProofNode S S]
 type ProveResult = (Proof, Tree, Maybe S)
 type VerifyResult = (Result, RootDigest, Maybe S)
 
-block1Task1TestTree :: IO TestTree
-block1Task1TestTree = testSpec "block1Task1" block1Task1Spec
+allTestTree :: IO TestTree
+allTestTree = testSpec "AllTests" allSpec
 
-block1Task1Spec :: Spec
-block1Task1Spec = do  
-  describe "Block1.Task1.Insert" $ do
-    it "test1" $
+allSpec :: Spec
+allSpec = do
+  describe "InsertTests" $ do
+    it "test1: insert (key1, valueA) in emptyTree" $
       let
         res1 :: OperationResult
         res1 = doLookup key1 emptyTree
@@ -39,8 +39,8 @@ block1Task1Spec = do
       in not (checkFst valueA res1) &&
              (checkFst valueA res2) &&
              (checkFst valueA res3) `shouldBe` True
-             
-    it "test2" $
+
+    it "test2: insert (key5, valueE) in threeTree" $
       let
         res1 :: OperationResult
         res1 = doLookup key5 threeTree
@@ -50,12 +50,12 @@ block1Task1Spec = do
         newTree = third3 res2
         res3 :: OperationResult
         res3 = doLookup key5 newTree
-      in not (checkFst valueE res1) && 
+      in not (checkFst valueE res1) &&
              (checkFst valueE res2) &&
              (checkFst valueE res3) `shouldBe` True
-  
-  describe "Block1.Task1.Security" $ do
-    it "test1" $
+
+  describe "SecurityTests" $ do
+    it "test1: delete (key3, valueC) from fourTree" $
       let
         oldTree :: Tree
         oldTree = fourTree
@@ -68,16 +68,35 @@ block1Task1Spec = do
         verifyRes :: VerifyResult
         verifyRes = verify (getDigest oldTree) (Delete key3) proof
         getVerifiedDigest = second3 verifyRes
-      in getDigest newTree `shouldBe` getVerifiedDigest
+        getResult = third3
+      in (getDigest newTree == getVerifiedDigest) &&
+         (getResult proveRes == getResult verifyRes) `shouldBe` True
+
+    it "test2: insert (key2, valueB) in oneTree" $
+      let
+        oldTree :: Tree
+        oldTree = oneTree
+        proveRes :: ProveResult
+        proveRes = prove oldTree (Insert key2 valueB);
+        newTree :: Tree
+        newTree = second3 proveRes
+        proof :: Proof
+        proof = first3 proveRes
+        verifyRes :: VerifyResult
+        verifyRes = verify (getDigest oldTree) (Insert key2 valueB) proof
+        getVerifiedDigest = second3 verifyRes
+        getResult = third3
+      in (getDigest newTree == getVerifiedDigest) &&
+         (getResult proveRes == getResult verifyRes) `shouldBe` True
 
   where
     check :: S -> Maybe S -> Bool
     check val1 (Just val2) = val1 == val2
     check _ Nothing = False
-    
+
     checkFst :: S -> OperationResult -> Bool
     checkFst val1 = (check val1) . first3
-    
+
     key1 :: S
     key1 = BS.fromString "1"
     key2 :: S

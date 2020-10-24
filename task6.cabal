@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c9f67e0cbc07481e6222e333eae3b72dd9890073a5572bd94f0032fcbb840c7c
+-- hash: dec97501ab5a6c8d5338a0b49654f6df7248a08afeef0f891ed28b719b4668ce
 
 name:           task6
 version:        0.1.0.0
@@ -61,7 +61,7 @@ test-suite task6-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Block1Task1Spec
+      AllTests
       Paths_task6
   hs-source-dirs:
       test

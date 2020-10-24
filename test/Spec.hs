@@ -3,9 +3,9 @@ module Main
   ) where
 
 import Test.Tasty
-import Block1Task1Spec (block1Task1TestTree)
+import AllTests (allTestTree)
 
 main :: IO ()
 main = do
-  test1 <- block1Task1TestTree
-  defaultMain $ testGroup "Tests" [test1]
+  test <- allTestTree
+  defaultMain $ testGroup "Tests" [test]
