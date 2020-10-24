@@ -26,7 +26,6 @@ Verifier implemented as a simple function that can be denoted as follows
 
 ```Haskell
 -- | verifies proof of a given operation
--- | verifies proof of a given operation
 verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
        => RootDigest            -- ^ old digest
        -> Operation key value   -- ^ applied operation
