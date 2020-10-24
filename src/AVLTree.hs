@@ -139,6 +139,7 @@ modify op (Node _ nk _ l r) =
     (adBalS, adFinT) = balance afterDelete
 modify (Insert k v) MinLeaf = (Just v, S.empty, newNode k MinLeaf (Leaf k v))
 modify _ MinLeaf = (Nothing, S.empty, MinLeaf)
+modify (Insert k v) (LabelLeaf lk lbl) = (Just v, S.empty, newNode k (LabelLeaf lk lbl) (Leaf k v))
 modify _ (LabelLeaf k lbl) = (Nothing, S.empty, LabelLeaf k lbl)
 modify op (Leaf lk lv)
   | k == lk = case op of
