@@ -28,68 +28,66 @@ allSpec = do
   describe "InsertTests" $ do
     it "test1: insert (key1, valueA) in emptyTree" $
       let
-        res1 :: OperationResult
-        res1 = doLookup key1 emptyTree
-        res2 :: OperationResult
-        res2 = doInsert key1 valueA emptyTree
-        newTree :: Tree
-        newTree = third3 res2
-        res3 :: OperationResult
-        res3 = doLookup key1 newTree
-      in not (checkFst valueA res1) &&
-             (checkFst valueA res2) &&
-             (checkFst valueA res3) `shouldBe` True
-
-    it "test2: insert (key5, valueE) in threeTree" $
+        ans = commonTest doInsert emptyTree key1 valueA
+      in ans `shouldBe` (False, True, True)
+    it "test2: insert (key2, valueB) in oneTree" $
       let
-        res1 :: OperationResult
-        res1 = doLookup key5 threeTree
-        res2 :: OperationResult
-        res2 = doInsert key5 valueE threeTree
-        newTree :: Tree
-        newTree = third3 res2
-        res3 :: OperationResult
-        res3 = doLookup key5 newTree
-      in not (checkFst valueE res1) &&
-             (checkFst valueE res2) &&
-             (checkFst valueE res3) `shouldBe` True
+        ans = commonTest doInsert oneTree key2 valueB
+      in ans `shouldBe` (False, True, True)
 
   describe "SecurityTests" $ do
-    it "test1: delete (key3, valueC) from fourTree" $
+    it "test1: delete (key3) from fourTree" $
       let
-        oldTree :: Tree
-        oldTree = fourTree
-        proveRes :: ProveResult
-        proveRes = prove oldTree (Delete key3);
-        newTree :: Tree
-        newTree = second3 proveRes
-        proof :: Proof
-        proof = first3 proveRes
-        verifyRes :: VerifyResult
-        verifyRes = verify (getDigest oldTree) (Delete key3) proof
-        getVerifiedDigest = second3 verifyRes
-        getResult = third3
-      in (getDigest newTree == getVerifiedDigest) &&
-         (getResult proveRes == getResult verifyRes) `shouldBe` True
+        ans = securityTest fourTree (Delete key3) (Delete key3)
+      in ans `shouldBe` (True, True, True)
 
     it "test2: insert (key2, valueB) in oneTree" $
       let
-        oldTree :: Tree
-        oldTree = oneTree
+        ans = securityTest oneTree (Insert key2 valueB) (Insert key2 valueB)
+      in ans `shouldBe` (True, True, True)
+
+    it "test3: insert (key1, valueA) in fiveTree" $
+      let
+        ans = securityTest fiveTree (Insert key1 valueA) (Insert key1 valueA)
+      in ans `shouldBe` (True, True, True)
+         
+    it "test4: insert (key5, valueE) in threeTree" $
+      let
+        ans = securityTest threeTree (Insert key5 valueE) (Delete key5)
+      in ans `shouldBe` (False, False, True)
+
+  where
+
+    securityTest oldTree fOp sOp = (res1, res2, res3)
+      where
         proveRes :: ProveResult
-        proveRes = prove oldTree (Insert key2 valueB);
+        proveRes = prove oldTree fOp;
         newTree :: Tree
         newTree = second3 proveRes
         proof :: Proof
         proof = first3 proveRes
         verifyRes :: VerifyResult
-        verifyRes = verify (getDigest oldTree) (Insert key2 valueB) proof
+        verifyRes = verify (getDigest oldTree) sOp proof
         getVerifiedDigest = second3 verifyRes
         getResult = third3
-      in (getDigest newTree == getVerifiedDigest) &&
-         (getResult proveRes == getResult verifyRes) `shouldBe` True
+        res1 = (getDigest newTree == getVerifiedDigest)
+        res2 = (getResult proveRes == getResult verifyRes)
+        res3 = (first3 verifyRes == Accept)
+    
+    commonTest action oldTree key value = (res1, res2, res3)
+      where
+        opRes1 :: OperationResult
+        opRes1 = doLookup key oldTree
+        opRes2 :: OperationResult
+        opRes2 = action key value oldTree
+        newTree :: Tree
+        newTree = third3 opRes2
+        opRes3 :: OperationResult
+        opRes3 = doLookup key newTree
+        res1 = (checkFst value opRes1)
+        res2 = (checkFst value opRes2)
+        res3 = (checkFst value opRes3)
 
-  where
     check :: S -> Maybe S -> Bool
     check val1 (Just val2) = val1 == val2
     check _ Nothing = False
