@@ -20,11 +20,12 @@ verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
 verify (RootDigest rootLbl h) op proof = (result, newD, retV)
   where
     -- partially recreates a  after checking that proof is not too long
-    recT = case compare (length proof) (2 * (2 + h)) of
+    lenCheck = compare (length proof) (2 * (2 + h))
+    recT = case lenCheck of
       GT -> MinLeaf
       _  -> fst $ recreateTree proof
     -- compares recreated digest with starting digest
-    result = if getDigest recT == RootDigest rootLbl h
+    result = if getDigest recT == RootDigest rootLbl h && (lenCheck /= GT)
       then Accept
       else Reject
     -- applies operation
