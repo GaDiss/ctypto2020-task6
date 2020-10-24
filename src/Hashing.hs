@@ -13,6 +13,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as BU
 
 -- | gets label of a NA Leaf
+emptyLabel :: Label
 emptyLabel = stringToLabel ""
 
 -- | gets label of a leaf
@@ -21,8 +22,7 @@ labelLeaf :: (ByteArrayAccess key, ByteArrayAccess value)
 labelLeaf k v =
   hashFinalize $ flip hashUpdate v
                $ flip hashUpdate k
-               $ flip hashUpdate (B.singleton 0)
-               $ hashInit
+               $ hashUpdate hashInit (B.singleton 0)
 
 -- | combines two labels
 labelCombine :: Height -> Label -> Label -> Label
@@ -32,5 +32,4 @@ labelCombine h l r =
 
 -- | converts string to a label
 stringToLabel :: String -> Label
-stringToLabel str = hashFinalize $ flip hashUpdate (BU.fromString str)
-                                 $ hashInit
+stringToLabel str = hashFinalize $ hashUpdate hashInit (BU.fromString str)

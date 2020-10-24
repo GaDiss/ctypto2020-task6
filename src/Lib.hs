@@ -1,7 +1,7 @@
 module Lib
   (
-    Label (..)
-  , Height (..)
+    Label
+  , Height
   , RootDigest (..)
   , Result (..)
   , Direction (..)
@@ -13,8 +13,6 @@ module Lib
   ) where
 
 import Crypto.Hash
-import qualified Data.ByteString as B
-
 type Label = Digest Blake2b_512
 
 type Height = Int
