@@ -41,6 +41,9 @@ instance (Show key, Show value) => Show (AVLTree key value) where
                          ++ "(" ++ show l ++ ") "
                          ++ "(" ++ show r ++ ")"
 
+instance (ByteArrayAccess key, ByteArrayAccess value) => Eq (AVLTree key value) where
+  (==) tree1 tree2 = getDigest tree1 == getDigest tree2
+
 -- | getter for tree height
 height :: AVLTree key value -> Height
 height (Node h _ _ _ _) = h
