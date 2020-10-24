@@ -6,7 +6,7 @@ ITMO Group project №1 for 2020 Cryptography course from
 
 Simplified for studying purposes haskell implementation of 
 an improved dynamic dictionary data structure
-describe [here](https://eprint.iacr.org/2016/994.pdf)
+described [here](https://eprint.iacr.org/2016/994.pdf)
 
 ##### Prover
 Prover implemented as a simple function that can be denoted as follows
