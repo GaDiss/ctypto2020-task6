@@ -8,7 +8,7 @@ Simplified for studying purposes haskell implementation of
 an improved dynamic dictionary data structure
 described [here](https://eprint.iacr.org/2016/994.pdf)
 
-##### Prover
+#### Prover
 Prover implemented as a simple function that can be denoted as follows
 
 ```Haskell
@@ -21,7 +21,7 @@ prove :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
          , Maybe value           -- ^ Operation return value
          )
 ```
-##### Verifier
+#### Verifier
 Verifier implemented as a simple function that can be denoted as follows
 
 ```Haskell
