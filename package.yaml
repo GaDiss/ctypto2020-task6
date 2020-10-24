@@ -63,3 +63,4 @@ tests:
     - utf8-string
     - cryptonite
     - containers
+    - MonadRandom

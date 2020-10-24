@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dec97501ab5a6c8d5338a0b49654f6df7248a08afeef0f891ed28b719b4668ce
+-- hash: 6b4c32695faa0187c09e45f0a08cab28be822c2986a9c0584c7a8a9031a6f394
 
 name:           task6
 version:        0.1.0.0
@@ -67,7 +67,8 @@ test-suite task6-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      MonadRandom
+    , base >=4.7 && <5
     , bytestring
     , containers
     , cryptonite

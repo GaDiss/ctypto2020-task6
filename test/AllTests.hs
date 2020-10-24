@@ -12,12 +12,37 @@ import Test.Tasty.Hspec (Spec, describe, it, shouldBe, testSpec)
 import qualified Data.ByteString.UTF8 as BS
 import qualified Data.Set as DS
 
+import Control.Monad.Random hiding (Random)
+
 type S = BS.ByteString
 type Tree = AVLTree S S
 type OperationResult = (Maybe S, DS.Set S, Tree)
 type Proof = [ProofNode S S]
 type ProveResult = (Proof, Tree, Maybe S)
 type VerifyResult = (Result, RootDigest, Maybe S)
+
+randomList :: Int -> IO [(BS.ByteString, BS.ByteString)]
+randomList 0 = return []
+randomList n = do
+  r1  <- randomIO :: IO Int
+  r2  <- randomIO :: IO Int
+  rs <- randomList (n - 1)
+  return ((BS.fromString $ show r1, BS.fromString $ show r2) : rs)
+
+randomTree :: Int -> IO (AVLTree BS.ByteString BS.ByteString)
+randomTree n = do
+  rl <- randomList n
+  return (AVLTree.fromList rl)
+
+randomTest :: Int -> IO (Bool)
+randomTest n = do
+  t <- randomTree n
+  let key3 = BS.fromString "3"
+  let rT = (third3 $ doInsert key3 key3 t)
+  let oldDigest = getDigest rT
+  let op = Delete key3
+  let proveResult = prove rT op
+  return ((getDigest (second3 proveResult)) == (second3 (verify oldDigest op (first3 proveResult))))
 
 allTestTree :: IO TestTree
 allTestTree = testSpec "AllTests" allSpec
@@ -29,23 +54,23 @@ allSpec = do
       let
         (_, ans) = commonTest (doInsert key1 valueA) emptyTree key1 valueA
       in ans `shouldBe` (False, True, True)
-      
+
     it "test2: insert (key2, valueB) in oneTree" $
       let
         (_, ans) = commonTest (doInsert key2 valueB) oneTree key2 valueB
       in ans `shouldBe` (False, True, True)
-      
+
     it "test3: insert (key2, valueB) in twoTree" $
       let
         (_, ans) = commonTest (doInsert key2 valueB) twoTree key2 valueB
       in ans `shouldBe` (True, False, True)
-  
+
   describe "DeleteTests" $ do
     it "test1: delete (key1) from emptyTree" $
       let
         (_, ans) = commonTest (doDelete key1) emptyTree key1 valueA
       in ans `shouldBe` (False, False, False)
-      
+
     it "test1: delete (key2) from fiveTree" $
       let
         (_, ans) = commonTest (doDelete key2) fiveTree key2 valueB
@@ -64,7 +89,7 @@ allSpec = do
          (ans3 == True) &&
          (ans4 == False) &&
          (ans5 == True) `shouldBe` True
-         
+
     it "add1, add2, del3, check1, check2" $
       let
         (newTree1, ans1) = singleCommonTest (doInsert key1 valueA) emptyTree valueA
@@ -77,7 +102,7 @@ allSpec = do
          (ans3 == False) &&
          (ans4 == True) &&
          (ans5 == True) `shouldBe` True
-         
+
     it "add1-value1, add1-value2, check1" $
       let
         (newTree1, ans1) = singleCommonTest (doInsert key1 valueA) emptyTree valueA
@@ -86,7 +111,7 @@ allSpec = do
       in (ans1 == True) &&
          (ans2 == False) &&
          (ans3 == True) `shouldBe` True
-         
+
     it "add1, add2, add3, add4, verify all prove" $
       let
         (newTree1, ans1) = singleCommonTest (doInsert key1 valueA) emptyTree valueA
@@ -105,7 +130,7 @@ allSpec = do
          (ans6 == (True, True, True)) &&
          (ans7 == (True, True, True)) &&
          (ans8 == (True, True, True)) `shouldBe` True
-         
+
     it "add1, add3, add5, del3, check1, check2, check5" $
       let
         (newTree1, ans1) = singleCommonTest (doInsert key1 valueA) emptyTree valueA
@@ -163,6 +188,23 @@ allSpec = do
       let
         (_, ans) = securityTest fourTree (Delete key2) (Delete key3)
       in ans `shouldBe` (False, False, True)
+
+  describe "StressTests" $ do
+    it "test1" $ do
+      ans <- (randomTest 10)
+      ans `shouldBe` True
+    it "test2" $ do
+      ans <- (randomTest 100)
+      ans `shouldBe` True
+    it "test3" $ do
+      ans <- (randomTest 1000)
+      ans `shouldBe` True
+    it "test4" $ do
+      ans <- (randomTest 10000)
+      ans `shouldBe` True
+    it "test5" $ do
+      ans <- (randomTest 100000)
+      ans `shouldBe` True
 
   where
 
