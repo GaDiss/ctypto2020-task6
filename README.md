@@ -14,10 +14,10 @@ Prover implemented as a simple function that can be denoted as follows
 ```Haskell
 -- | applies operation and generates proof
 prove :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-      => (AVLTree key value)     -- ^ Old Tree
-      -> (Operation key value)   -- ^ Operation
+      => AVLTree key value       -- ^ Old Tree
+      -> Operation key value     -- ^ Operation
       -> ( [ProofNode key value] -- ^ Proof of the operation
-         , (AVLTree key value)   -- ^ New Tree
+         , AVLTree key value     -- ^ New Tree
          , Maybe value           -- ^ Operation return value
          )
 ```
@@ -26,12 +26,13 @@ Verifier implemented as a simple function that can be denoted as follows
 
 ```Haskell
 -- | verifies proof of a given operation
+-- | verifies proof of a given operation
 verify :: (Ord key, ByteArrayAccess key, ByteArrayAccess value)
-       => RootDigest              -- ^ old digest
-       -> (Operation key value)   -- ^ applied operation
-       -> [(ProofNode key value)] -- ^ proof
-       -> ( Result                -- ^ verifier's verdict
-          , RootDigest            -- ^ new digest
-          , Maybe value           -- ^ return value
+       => RootDigest            -- ^ old digest
+       -> Operation key value   -- ^ applied operation
+       -> [ProofNode key value] -- ^ proof
+       -> ( Result              -- ^ verifier's verdict
+          , RootDigest          -- ^ new digest
+          , Maybe value         -- ^ return value
           )
 ```
